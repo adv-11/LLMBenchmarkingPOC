@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-# Function to create a new question-answer pair
+# func to create a new question-answer pair
 def create_qa_pair():
     question = st.text_input("Enter Question:")
     answer = st.text_input("Enter Answer:")
@@ -13,33 +13,29 @@ def create_qa_pair():
             st.warning("Both fields are required.")
     return None, None
 
-# Main application
+# main 
 def main():
     st.title("LLM Evaluation Platform")
 
-    # Page selection
-    page = st.sidebar.selectbox("Select Page", ["Page 1: LLM Selection", "Page 2: Dataset Creation"])
+    # page selection
+    page = st.sidebar.selectbox("Select Page", ["Page 1: LLM Selection", "Page 2: Dataset Creation" , "Page 3: Dashboard"])
 
     if page == "Page 1: LLM Selection":
         st.header("Select LLM and Upload Document")
         
-        # Dropdown for LLM selection
-        llm_options = ["LLM 1", "LLM 2", "LLM 3"]  # Replace with actual LLM names
-        selected_llm = st.selectbox("Select an LLM:", llm_options)
+        llm_options = ["llama3.2", "qwen0.5", "mistral"]  
+        selected_llms = st.multiselect("Select LLM(s):", llm_options)
+
+        # Display the selected LLM(s)
+        st.write("You selected:", selected_llms)
         
-        # Document upload
+        # doc upload
         uploaded_file = st.file_uploader("Upload Document for RAG", type=["pdf", "docx", "txt"])
         
         if uploaded_file is not None:
             st.success("Document uploaded successfully!")
         
-        # Run button
-        if st.button("Run"):
-            if uploaded_file is not None:
-                st.success("Running evaluation with selected LLM...")
-                # Here you can call the backend logic
-            else:
-                st.warning("Please upload a document before running.")
+        
 
     elif page == "Page 2: Dataset Creation":
         st.header("Create Dataset of Questions and Answers")
@@ -65,6 +61,17 @@ def main():
         if st.button("Download Dataset as CSV"):
             csv = st.session_state.qa_dataframe.to_csv(index=False)
             st.download_button("Download CSV", csv, "qa_dataset.csv", "text/csv")
+
+    elif page == 'Page 3: Dashboard':
+        st.header("Dashboard")
+        
+        st.button('Run Evaluation')
+                # Here you would implement the RAG logic with the selected LLMs, uploaded document, and Q&A dataframe
+                # For example, you could call a function to process the document and generate responses based on the Q&A pairs.
+                
+                # Placeholder for RAG processing logic
+              
+        
 
 if __name__ == "__main__":
     main()

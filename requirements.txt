@@ -1,0 +1,7 @@
+streamlit
+pandas
+python-dotenv
+langchain-community
+langchain-mistralai
+langchain-core
+langchain-huggingface

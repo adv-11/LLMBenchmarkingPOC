@@ -1,4 +1,4 @@
-from json import load
+from langchain_community.vectorstores import FAISS
 import streamlit as st
 import pandas as pd
 from langchain_community.document_loaders import TextLoader
@@ -16,12 +16,14 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.messages import HumanMessage
 from langchain import hub
 load_dotenv()
+from langchain_huggingface import HuggingFaceEndpoint , ChatHuggingFace
+from langchain_core.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+
+
+callbacks = [StreamingStdOutCallbackHandler()]
 
 HF_TOKEN = os.environ["HF_TOKEN"] 
 MISTRAL_API_KEY = os.environ["MISTRAL_API_KEY"]
-
-print (HF_TOKEN , '\n', MISTRAL_API_KEY)
-
 
 # func to create a new question-answer pair
 def create_qa_pair():
@@ -83,11 +85,12 @@ def main():
     
     if st.button('Run'):
         st.write("Running Evaluation...")
+        
         # Here you would implement the RAG logic with the selected LLMs, uploaded document, and Q&A dataframe
         # For example, you could call a function to process the document and generate responses based on the Q&A pairs.
         
         # Placeholder for RAG processing logic
-              
+
 
 if __name__ == "__main__":
     main()

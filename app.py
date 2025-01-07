@@ -4,19 +4,14 @@ import pandas as pd
 from langchain_community.document_loaders import TextLoader
 from langchain_mistralai.chat_models import ChatMistralAI
 from langchain_mistralai.embeddings import MistralAIEmbeddings
-from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains import create_retrieval_chain
 from dotenv import load_dotenv
 import os
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_core.messages import HumanMessage
-from langchain import hub
+# from langchain import hub
 load_dotenv()
-from langchain_huggingface import HuggingFaceEndpoint , ChatHuggingFace
+from langchain_huggingface import ChatHuggingFace
 from langchain_core.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from litellm import LiteLLM
 
@@ -88,13 +83,15 @@ def main():
         st.write("Running Evaluation...")
         
         # Initialize LiteLLM with Hugging Face token
-        llm = LiteLLM(hf_token=HF_TOKEN)
+        llm = LiteLLM()
 
         # Load the uploaded document
         if uploaded_file is not None:
 
             if uploaded_file.type == "application/pdf":
-                loader = PyPDFLoader(uploaded_file)
+                with open("temp_uploaded_file.pdf", "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                loader = PyPDFLoader("temp_uploaded_file.pdf")
             elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
                 loader = TextLoader(uploaded_file)
             else:
@@ -108,7 +105,7 @@ def main():
 
             # Initialize the vector store
             vector_store = FAISS.from_documents(docs, MistralAIEmbeddings(api_key=MISTRAL_API_KEY))
-
+            create_retrieval_chain(vector_store, llm)
             # Create a retrieval chain
             retrieval_chain = create_retrieval_chain(vector_store, llm)
 
@@ -121,21 +118,21 @@ def main():
                     model = ChatHuggingFace(model_name="qwen0.5", hf_token=HF_TOKEN)
                 elif llm_name == "mistral":
                     model = ChatMistralAI(api_key=MISTRAL_API_KEY)
-
+            for _, row in qa_dataframe.iterrows():
             # Generate responses for each question in the dataset
-            for index, row in qa_dataframe.iterrows():
-                question = row["Question"]
-                expected_answer = row["Answer"]
+                for index, row in qa_dataframe.iterrows():
+                    question = row["Question"]
+                    expected_answer = row["Answer"]
 
-                # Generate response using the selected LLM
-                response = model.generate(question)
+                    # Generate response using the selected LLM
+                    response = model.generate(question)
 
-                # Compare the response with the expected answer
-                results[question] = {
-                "expected": expected_answer,
-                "response": response,
-                "match": response.strip().lower() == expected_answer.strip().lower()
-                }
+                    # Compare the response with the expected answer
+                    results[question] = {
+                    "expected": expected_answer,
+                    "response": response,
+                    "match": response.strip().lower() == expected_answer.strip().lower()
+                    }
 
             # Display the results
             st.subheader("Evaluation Results")

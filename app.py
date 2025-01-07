@@ -18,6 +18,7 @@ from langchain import hub
 load_dotenv()
 from langchain_huggingface import HuggingFaceEndpoint , ChatHuggingFace
 from langchain_core.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+from litellm import LiteLLM
 
 
 callbacks = [StreamingStdOutCallbackHandler()]
@@ -86,10 +87,64 @@ def main():
     if st.button('Run'):
         st.write("Running Evaluation...")
         
-        # Here you would implement the RAG logic with the selected LLMs, uploaded document, and Q&A dataframe
-        # For example, you could call a function to process the document and generate responses based on the Q&A pairs.
-        
-        # Placeholder for RAG processing logic
+        # Initialize LiteLLM with Hugging Face token
+        llm = LiteLLM(hf_token=HF_TOKEN)
+
+        # Load the uploaded document
+        if uploaded_file is not None:
+
+            if uploaded_file.type == "application/pdf":
+                loader = PyPDFLoader(uploaded_file)
+            elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                loader = TextLoader(uploaded_file)
+            else:
+                loader = TextLoader(uploaded_file)
+
+            documents = loader.load()
+
+            # Split the document into chunks
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+            docs = text_splitter.split_documents(documents)
+
+            # Initialize the vector store
+            vector_store = FAISS.from_documents(docs, MistralAIEmbeddings(api_key=MISTRAL_API_KEY))
+
+            # Create a retrieval chain
+            retrieval_chain = create_retrieval_chain(vector_store, llm)
+
+            # Evaluate each LLM
+            results = {}
+            for llm_name in selected_llms:
+                if llm_name == "llama3.2":
+                    model = ChatHuggingFace(model_name="llama3.2", hf_token=HF_TOKEN)
+                elif llm_name == "qwen0.5":
+                    model = ChatHuggingFace(model_name="qwen0.5", hf_token=HF_TOKEN)
+                elif llm_name == "mistral":
+                    model = ChatMistralAI(api_key=MISTRAL_API_KEY)
+
+            # Generate responses for each question in the dataset
+            for index, row in qa_dataframe.iterrows():
+                question = row["Question"]
+                expected_answer = row["Answer"]
+
+                # Generate response using the selected LLM
+                response = model.generate(question)
+
+                # Compare the response with the expected answer
+                results[question] = {
+                "expected": expected_answer,
+                "response": response,
+                "match": response.strip().lower() == expected_answer.strip().lower()
+                }
+
+            # Display the results
+            st.subheader("Evaluation Results")
+            for question, result in results.items():
+                st.write(f"Question: {question}")
+                st.write(f"Expected Answer: {result['expected']}")
+                st.write(f"LLM Response: {result['response']}")
+                st.write(f"Match: {result['match']}")
+                st.write("---")
 
 
 if __name__ == "__main__":
